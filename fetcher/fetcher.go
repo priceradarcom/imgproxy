@@ -73,6 +73,13 @@ func (f *Fetcher) BuildRequest(
 	// Set headers
 	httpheaders.CopyToRequest(header, req)
 
+	// Set configured headers last so they override forwarded headers.
+	for name, values := range f.config.CustomRequestHeaders {
+		for _, value := range values {
+			req.Header.Set(name, value)
+		}
+	}
+
 	return &Request{f, req, cancel}, nil
 }
 

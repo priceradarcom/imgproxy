@@ -2,6 +2,7 @@ package fetcher
 
 import (
 	"errors"
+	"net/http"
 	"strings"
 	"time"
 
@@ -12,15 +13,20 @@ import (
 )
 
 var (
-	IMGPROXY_USER_AGENT       = env.String("IMGPROXY_USER_AGENT")
-	IMGPROXY_DOWNLOAD_TIMEOUT = env.Duration("IMGPROXY_DOWNLOAD_TIMEOUT")
-	IMGPROXY_MAX_REDIRECTS    = env.Int("IMGPROXY_MAX_REDIRECTS")
+	IMGPROXY_USER_AGENT               = env.String("IMGPROXY_USER_AGENT")
+	IMGPROXY_DOWNLOAD_TIMEOUT         = env.Duration("IMGPROXY_DOWNLOAD_TIMEOUT")
+	IMGPROXY_MAX_REDIRECTS            = env.Int("IMGPROXY_MAX_REDIRECTS")
+	IMGPROXY_CUSTOM_REQUEST_HEADERS   = env.String("IMGPROXY_CUSTOM_REQUEST_HEADERS")
+	IMGPROXY_CUSTOM_HEADERS_SEPARATOR = env.String("IMGPROXY_CUSTOM_HEADERS_SEPARATOR")
 )
 
 // Config holds the configuration for the image fetcher.
 type Config struct {
 	// UserAgent is the User-Agent header to use when fetching images.
 	UserAgent string
+
+	// CustomRequestHeaders are applied after forwarded headers when fetching images.
+	CustomRequestHeaders http.Header
 
 	// DownloadTimeout is the timeout for downloading an image, in seconds.
 	DownloadTimeout time.Duration
@@ -57,6 +63,26 @@ func LoadConfigFromEnv(c *Config) (*Config, error) {
 
 	// Set the current version in the User-Agent string
 	c.UserAgent = strings.ReplaceAll(c.UserAgent, "%current_version", version.Version)
+
+	if value, ok := IMGPROXY_CUSTOM_REQUEST_HEADERS.GetEnv(); ok {
+		separator, _ := IMGPROXY_CUSTOM_HEADERS_SEPARATOR.GetEnv()
+		if separator == "" {
+			separator = `\;`
+		}
+
+		headers := make(http.Header)
+		for item := range strings.SplitSeq(value, separator) {
+			if item == "" {
+				continue
+			}
+			name, value, ok := strings.Cut(item, "=")
+			if !ok {
+				return c, errors.Join(err, IMGPROXY_CUSTOM_REQUEST_HEADERS.Errorf("expected Name=Value for each header"))
+			}
+			headers.Set(name, value)
+		}
+		c.CustomRequestHeaders = headers
+	}
 
 	return c, err
 }

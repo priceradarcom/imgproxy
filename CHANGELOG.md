@@ -1,5 +1,8 @@
 # Changelog
 
+## [fork] priceradar
+- Added Pro-compatible `IMGPROXY_CUSTOM_REQUEST_HEADERS` for all source image downloads, overriding forwarded headers and User-Agent. Use `Name=Value` entries separated by `IMGPROXY_CUSTOM_HEADERS_SEPARATOR` (default: `\;`, a backslash followed by a semicolon), e.g. `X-A=1\;X-B=2`. Values preserve whitespace and additional `=` characters; empty entries are skipped and entries without `=` are configuration errors.
+
 ## [4.0.24] - 2026-11-12
 ### Changed
 - Updated dependencies.
